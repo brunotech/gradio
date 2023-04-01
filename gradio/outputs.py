@@ -62,7 +62,7 @@ class Textbox(OutputComponent):
         }
 
     def postprocess(self, y):
-        if self.type == "str" or self.type == "auto":
+        if self.type in ["str", "auto"]:
             return str(y)
         elif self.type == "number":
             return y
@@ -92,7 +92,11 @@ class Label(OutputComponent):
         super().__init__(label)
 
     def postprocess(self, y):
-        if self.type == "label" or (self.type == "auto" and (isinstance(y, str) or isinstance(y, Number))):
+        if (
+            self.type == "label"
+            or self.type == "auto"
+            and (isinstance(y, (str, Number)))
+        ):
             return {"label": str(y)}
         elif self.type == "confidences" or (self.type == "auto" and isinstance(y, dict)):
             sorted_pred = sorted(
@@ -236,8 +240,7 @@ class Video(OutputComponent):
     def postprocess(self, y):
         returned_format = y.split(".")[-1].lower()
         if self.type is not None and returned_format != self.type:
-            output_file_name = y[0: y.rindex(
-                    ".") + 1] + self.type
+            output_file_name = y[: y.rindex(".") + 1] + self.type
             ff = FFmpeg(
                 inputs={y: None},
                 outputs={output_file_name: None}
@@ -359,21 +362,20 @@ class Audio(OutputComponent):
         }
 
     def postprocess(self, y):
-        if self.type in ["numpy", "file", "auto"]:
-            if self.type == "numpy" or (self.type == "auto" and isinstance(y, tuple)):
-                sample_rate, data = y
-                file = tempfile.NamedTemporaryFile(delete=False)
-                audio_segment = AudioSegment(
-                    data.tobytes(), 
-                    frame_rate=sample_rate, 
-                    sample_width=data.dtype.itemsize, 
-                    channels=len(data.shape))
-                audio_segment.export(file.name)
-                y = file.name
-            return processing_utils.encode_file_to_base64(y, type="audio", ext="wav")
-        else:
+        if self.type not in ["numpy", "file", "auto"]:
             raise ValueError("Unknown type: " + self.type +
                              ". Please choose from: 'numpy', 'file'.")
+        if self.type == "numpy" or (self.type == "auto" and isinstance(y, tuple)):
+            sample_rate, data = y
+            file = tempfile.NamedTemporaryFile(delete=False)
+            audio_segment = AudioSegment(
+                data.tobytes(), 
+                frame_rate=sample_rate, 
+                sample_width=data.dtype.itemsize, 
+                channels=len(data.shape))
+            audio_segment.export(file.name)
+            y = file.name
+        return processing_utils.encode_file_to_base64(y, type="audio", ext="wav")
 
     def save_flagged(self, dir, label, data, encryption_key):
         """
@@ -397,10 +399,7 @@ class JSON(OutputComponent):
         super().__init__(label)
 
     def postprocess(self, y):
-        if isinstance(y, str):
-            return json.dumps(y)
-        else:
-            return y
+        return json.dumps(y) if isinstance(y, str) else y
 
     @classmethod
     def get_shortcut_implementations(cls):
@@ -570,19 +569,18 @@ class Carousel(OutputComponent):
         }
 
     def postprocess(self, y):
-        if isinstance(y, list):
-            if len(y) != 0 and not isinstance(y[0], list):
-                y = [[z] for z in y]
-            output = []
-            for row in y:
-                output_row = []
-                for i, cell in enumerate(row):
-                    output_row.append(self.components[i].postprocess(cell))
-                output.append(output_row)
-            return output
-        else:
+        if not isinstance(y, list):
             raise ValueError(
                 "Unknown type. Please provide a list for the Carousel.")
+        if len(y) != 0 and not isinstance(y[0], list):
+            y = [[z] for z in y]
+        output = []
+        for row in y:
+            output_row = [
+                self.components[i].postprocess(cell) for i, cell in enumerate(row)
+            ]
+            output.append(output_row)
+        return output
 
     def save_flagged(self, dir, label, data, encryption_key):
         return json.dumps([

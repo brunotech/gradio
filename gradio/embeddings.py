@@ -22,7 +22,7 @@ class PCA:
         idxs = np.argsort(eigenvalues)[::-1]
         eigenvalues = eigenvalues[idxs]
         eigenvectors = eigenvectors[idxs]
-        self.components = np.real(eigenvectors[0:self.n_components])
+        self.components = np.real(eigenvectors[:self.n_components])
 
     def transform(self, X):
         X = X - self.mean
@@ -38,8 +38,7 @@ def calculate_similarity(embedding1, embedding2):
     Scores the similarity between two embeddings by taking the cosine similarity
     """
     e1, e2 = np.array(embedding1), np.array(embedding2)
-    cosine_similarity = np.dot(e1, e2) / (np.linalg.norm(e1) * np.linalg.norm(e2) + SMALL_CONST)
-    return cosine_similarity
+    return np.dot(e1, e2) / (np.linalg.norm(e1) * np.linalg.norm(e2) + SMALL_CONST)
 
 def fit_pca_to_embeddings(embeddings):
     """

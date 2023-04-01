@@ -15,7 +15,7 @@ class Parallel(Interface):
     def __init__(self, *interfaces, **options):
         fns = []
         outputs = []
-        
+
         for io in interfaces:
             fns.extend(io.predict)
             outputs.extend(io.output_components)
@@ -25,8 +25,7 @@ class Parallel(Interface):
             "inputs": interfaces[0].input_components,
             "outputs": outputs,
             "repeat_outputs_per_model": False,
-        }
-        kwargs.update(options)
+        } | options
         super().__init__(**kwargs) 
 
 

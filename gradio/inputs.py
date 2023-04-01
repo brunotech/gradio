@@ -137,8 +137,9 @@ class Textbox(InputComponent):
         elif self.type == "number":
             return float(x)
         else:
-            raise ValueError("Unknown type: " + str(self.type) +
-                             ". Please choose from: 'str', 'number'.")
+            raise ValueError(
+                f"Unknown type: {str(self.type)}. Please choose from: 'str', 'number'."
+            )
 
     def preprocess_example(self, x):
         """
@@ -193,8 +194,7 @@ class Textbox(InputComponent):
         """
         result = []
         for token, score in zip(tokens, scores):
-            result.append((token, score))
-            result.append((self.interpretation_separator, 0))
+            result.extend(((token, score), (self.interpretation_separator, 0)))
         return result
 
     def _embed_text(self, text):
@@ -216,8 +216,9 @@ class Textbox(InputComponent):
         elif self.type == "number":
             return [float(x)]
         else:
-            raise ValueError("Unknown type: " + str(self.type) +
-                             ". Please choose from: 'str', 'number'.")
+            raise ValueError(
+                f"Unknown type: {str(self.type)}. Please choose from: 'str', 'number'."
+            )
 
 
 class Number(InputComponent):
@@ -296,7 +297,7 @@ class Number(InputComponent):
         (List[Tuple[float, float]]): Each tuple set represents a numeric value near the input and its corresponding interpretation score.
         """
         interpretation = list(zip(neighbors, scores))
-        interpretation.insert(int(len(interpretation) / 2), [x, None])
+        interpretation.insert(len(interpretation) // 2, [x, None])
         return interpretation
 
     def embed(self, x):
@@ -427,10 +428,7 @@ class Checkbox(InputComponent):
         Returns:
         (Tuple[float, float]): The first value represents the interpretation score if the input is False, and the second if the input is True.
         """
-        if x:
-            return scores[0], None
-        else:
-            return None, scores[0]
+        return (scores[0], None) if x else (None, scores[0])
 
     def embed(self, x):
         return [float(x)]
@@ -471,8 +469,9 @@ class CheckboxGroup(InputComponent):
         elif self.type == "index":
             return [self.choices.index(choice) for choice in x]
         else:
-            raise ValueError("Unknown type: " + str(self.type) +
-                             ". Please choose from: 'value', 'index'.")
+            raise ValueError(
+                f"Unknown type: {str(self.type)}. Please choose from: 'value', 'index'."
+            )
 
     def set_interpret_parameters(self):
         """
@@ -498,10 +497,7 @@ class CheckboxGroup(InputComponent):
         """
         final_scores = []
         for choice, score in zip(self.choices, scores):
-            if choice in x:
-                score_set = [score, None]
-            else:
-                score_set = [None, score]
+            score_set = [score, None] if choice in x else [None, score]
             final_scores.append(score_set)
         return final_scores
 
@@ -511,8 +507,9 @@ class CheckboxGroup(InputComponent):
         elif self.type == "index":
             return [float(index in x) for index in range(len(self.choices))]
         else:
-            raise ValueError("Unknown type: " + str(self.type) +
-                             ". Please choose from: 'value', 'index'.")
+            raise ValueError(
+                f"Unknown type: {str(self.type)}. Please choose from: 'value', 'index'."
+            )
 
     def save_flagged(self, dir, label, data, encryption_key):
         """
@@ -559,8 +556,9 @@ class Radio(InputComponent):
         elif self.type == "index":
             return self.choices.index(x)
         else:
-            raise ValueError("Unknown type: " + str(self.type) +
-                             ". Please choose from: 'value', 'index'.")
+            raise ValueError(
+                f"Unknown type: {str(self.type)}. Please choose from: 'value', 'index'."
+            )
 
     def set_interpret_parameters(self):
         """
@@ -587,8 +585,9 @@ class Radio(InputComponent):
         elif self.type == "index":
             return [float(index == x) for index in range(len(self.choices))]
         else:
-            raise ValueError("Unknown type: " + str(self.type) +
-                             ". Please choose from: 'value', 'index'.")
+            raise ValueError(
+                f"Unknown type: {str(self.type)}. Please choose from: 'value', 'index'."
+            )
 
 
 class Dropdown(InputComponent):
@@ -626,8 +625,9 @@ class Dropdown(InputComponent):
         elif self.type == "index":
             return self.choices.index(x)
         else:
-            raise ValueError("Unknown type: " + str(self.type) +
-                             ". Please choose from: 'value', 'index'.")
+            raise ValueError(
+                f"Unknown type: {str(self.type)}. Please choose from: 'value', 'index'."
+            )
 
     def set_interpret_parameters(self):
         """
@@ -654,8 +654,9 @@ class Dropdown(InputComponent):
         elif self.type == "index":
             return [float(index == x) for index in range(len(self.choices))]
         else:
-            raise ValueError("Unknown type: " + str(self.type) +
-                             ". Please choose from: 'value', 'index'.")
+            raise ValueError(
+                f"Unknown type: {str(self.type)}. Please choose from: 'value', 'index'."
+            )
 
 
 class Image(InputComponent):
@@ -729,8 +730,9 @@ class Image(InputComponent):
             im.save(file_obj.name)
             return file_obj
         else:
-            raise ValueError("Unknown type: " + str(self.type) +
-                             ". Please choose from: 'numpy', 'pil', 'file'.")
+            raise ValueError(
+                f"Unknown type: {str(self.type)}. Please choose from: 'numpy', 'pil', 'file'."
+            )
 
     def preprocess_example(self, x):
         return processing_utils.encode_file_to_base64(x)
@@ -756,7 +758,7 @@ class Image(InputComponent):
         resized_and_cropped_image = np.array(x)
         try:
             from skimage.segmentation import slic
-        except (ImportError, ModuleNotFoundError):
+        except ImportError:
             raise ValueError(
                 "Error: running this interpretation for images requires scikit-image, please install it first.")
         try:
@@ -782,7 +784,7 @@ class Image(InputComponent):
         segments_slic, resized_and_cropped_image = self._segment_by_slic(x)
         tokens, masks, leave_one_out_tokens = [], [], []
         replace_color = np.mean(resized_and_cropped_image, axis=(0, 1))
-        for (i, segment_value) in enumerate(np.unique(segments_slic)):
+        for segment_value in np.unique(segments_slic):
             mask = (segments_slic == segment_value)
             image_screen = np.copy(resized_and_cropped_image)
             image_screen[segments_slic == segment_value] = replace_color
@@ -832,8 +834,9 @@ class Image(InputComponent):
         elif self.type == "file":
             im = PIL.Image.open(x)
         else:
-            raise ValueError("Unknown type: " + str(self.type) +
-                             ". Please choose from: 'numpy', 'pil', 'file'.")
+            raise ValueError(
+                f"Unknown type: {str(self.type)}. Please choose from: 'numpy', 'pil', 'file'."
+            )
         im = processing_utils.resize_and_crop(im, (shape[0], shape[1]))
         return np.asarray(im).flatten()
 
@@ -885,17 +888,15 @@ class Video(InputComponent):
                 file_data, file_path=file_name)
         file_name = file.name
         uploaded_format = file_name.split(".")[-1].lower()
-        if self.type is not None and uploaded_format != self.type:
-            output_file_name = file_name[0: file_name.rindex(
-                ".") + 1] + self.type
-            ff = FFmpeg(
-                inputs={file_name: None},
-                outputs={output_file_name: None}
-            )
-            ff.run()
-            return output_file_name
-        else:
+        if self.type is None or uploaded_format == self.type:
             return file_name
+        output_file_name = file_name[: file_name.rindex(".") + 1] + self.type
+        ff = FFmpeg(
+            inputs={file_name: None},
+            outputs={output_file_name: None}
+        )
+        ff.run()
+        return output_file_name
 
     def preprocess_example(self, x):
         return processing_utils.encode_file_to_base64(x)
@@ -1004,7 +1005,7 @@ class Audio(InputComponent):
             leave_one_out_sets.append(out_data)
             # Handle the tokens
             token = np.copy(data)
-            token[0:start] = 0
+            token[:start] = 0
             token[stop:] = 0
             file = tempfile.NamedTemporaryFile(delete=False)
             audio_segment = AudioSegment(
@@ -1118,8 +1119,10 @@ class File(InputComponent):
                         return file_data.read()
                 return processing_utils.decode_base64_to_binary(data)[0]
             else:
-                raise ValueError("Unknown type: " + str(self.type) +
-                                 ". Please choose from: 'file', 'bytes'.")
+                raise ValueError(
+                    f"Unknown type: {str(self.type)}. Please choose from: 'file', 'bytes'."
+                )
+
         if self.file_count == "single":
             if isinstance(x, list):
                 return process_single_file(x[0])
@@ -1207,8 +1210,9 @@ class Dataframe(InputComponent):
         elif self.type == "array":
             return x
         else:
-            raise ValueError("Unknown type: " + str(self.type) +
-                             ". Please choose from: 'pandas', 'numpy', 'array'.")
+            raise ValueError(
+                f"Unknown type: {str(self.type)}. Please choose from: 'pandas', 'numpy', 'array'."
+            )
 
     def embed(self, x):
         raise NotImplementedError(
@@ -1291,5 +1295,6 @@ def get_input_instance(iface):
     elif isinstance(iface, InputComponent):
         return iface
     else:
-        raise ValueError("Input interface must be of type `str` or "
-                         "`InputComponent` but is {}".format(iface))
+        raise ValueError(
+            f"Input interface must be of type `str` or `InputComponent` but is {iface}"
+        )

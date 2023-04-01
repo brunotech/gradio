@@ -15,7 +15,7 @@ class Component():
         return self.__repr__()
 
     def __repr__(self):
-        return "{}(label=\"{}\")".format(type(self).__name__, self.label)
+        return f'{type(self).__name__}(label=\"{self.label}\")'
 
     def get_template_context(self):
         """
@@ -57,9 +57,9 @@ class Component():
         new_file_name = str(file_index)
         if "." in old_file_name:
             uploaded_format = old_file_name.split(".")[-1].lower()
-            new_file_name +=  "." + uploaded_format
+            new_file_name += f".{uploaded_format}"
         shutil.move(old_file_name, os.path.join(dir, label, new_file_name))
-        return label + "/" + new_file_name
+        return f"{label}/{new_file_name}"
 
     @classmethod
     def get_all_shortcut_implementations(cls):

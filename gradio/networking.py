@@ -118,9 +118,7 @@ def get_first_available_port(initial, final):
         except OSError:
             pass
     raise OSError(
-        "All ports from {} to {} are in use. Please close a port.".format(
-            initial, final
-        )
+        f"All ports from {initial} to {final} are in use. Please close a port."
     )
 
 
@@ -193,8 +191,7 @@ def predict():
                 username=current_user.id if current_user.is_authenticated else None)
             output["flag_index"] = flag_index
         except Exception as e:
-            print(str(e))
-            pass
+            print(e)
     return jsonify(output)
 
 
@@ -217,7 +214,7 @@ def score_similarity():
     preprocessed_input = [input_interface.preprocess(raw_input[i])
                           for i, input_interface in enumerate(app.interface.input_components)]
     input_embedding = app.interface.embed(preprocessed_input)
-    scores = list()
+    scores = []
 
     for example in app.interface.examples:
         preprocessed_example = [iface.preprocess(iface.preprocess_example(example))
@@ -405,7 +402,8 @@ def queue_thread(path_to_local_server):
                 _, hash, input_data, task_type = next_job
                 queue.start_job(hash)
                 response = requests.post(
-                    path_to_local_server + "/api/" + task_type + "/", json=input_data)
+                    f"{path_to_local_server}/api/{task_type}/", json=input_data
+                )
                 if response.status_code == 200:
                     queue.pass_job(hash, response.json())
                 else:
@@ -414,7 +412,6 @@ def queue_thread(path_to_local_server):
                 time.sleep(1)
         except Exception as e:
             time.sleep(1)
-            pass
 
 def start_server(interface, server_name, server_port=None, auth=None, ssl=None):
     if server_port is None:
@@ -422,12 +419,13 @@ def start_server(interface, server_name, server_port=None, auth=None, ssl=None):
     port = get_first_available_port(
         server_port, server_port + TRY_NUM_PORTS
     )
-    path_to_local_server = "http://{}:{}/".format(server_name, port)
+    path_to_local_server = f"http://{server_name}:{port}/"
     if auth is not None:
-        if not callable(auth):
-            app.auth = {account[0]: account[1] for account in auth}
-        else:
-            app.auth = auth
+        app.auth = (
+            auth
+            if callable(auth)
+            else {account[0]: account[1] for account in auth}
+        )
     else:
         app.auth = None
     app.interface = interface
@@ -468,15 +466,17 @@ def url_request(url):
         req = urllib.request.Request(
             url=url, headers={"content-type": "application/json"}
         )
-        res = urllib.request.urlopen(req, timeout=10)
-        return res
+        return urllib.request.urlopen(req, timeout=10)
     except Exception as e:
         raise RuntimeError(str(e))
 
 
 def setup_tunnel(local_server_port, endpoint):
     response = url_request(
-        endpoint + '/v1/tunnel-request' if endpoint is not None else GRADIO_API_SERVER)
+        f'{endpoint}/v1/tunnel-request'
+        if endpoint is not None
+        else GRADIO_API_SERVER
+    )
     if response and response.code == 200:
         try:
             payload = json.loads(response.read().decode("utf-8"))[0]

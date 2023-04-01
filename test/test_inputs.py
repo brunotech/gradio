@@ -19,7 +19,7 @@ class TestNumber(unittest.TestCase):
 
 class TestSlider(unittest.TestCase):
     def test_in_interface(self):
-        iface = gr.Interface(lambda x: str(x) + " cats", "slider", "textbox")
+        iface = gr.Interface(lambda x: f"{str(x)} cats", "slider", "textbox")
         self.assertEqual(iface.process([4])[0], ["4 cats"])
 
 

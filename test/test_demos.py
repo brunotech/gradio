@@ -108,8 +108,7 @@ class TestDemo(unittest.TestCase):
         self.assertEqual(elem.text, "LeWant's tgo see a magic trick?!")
         golden_img = os.path.join(current_dir, GOLDEN_PATH.format(
             "diff_texts", "magic_trick"))
-        tmp = os.path.join(current_dir, "test/tmp/{}.png".format(
-            random.getrandbits(32)))
+        tmp = os.path.join(current_dir, f"test/tmp/{random.getrandbits(32)}.png")
         time.sleep(GAP_TO_SCREENSHOT)
         driver.save_screenshot(tmp)
         driver.close()
@@ -127,8 +126,7 @@ class TestDemo(unittest.TestCase):
         elem.send_keys(os.path.join(cwd, rel))
         golden_img = os.path.join(current_dir, GOLDEN_PATH.format(
             "image_mod", "cheetah1"))
-        tmp = os.path.join(current_dir, "test/tmp/{}.png".format(
-            random.getrandbits(32)))
+        tmp = os.path.join(current_dir, f"test/tmp/{random.getrandbits(32)}.png")
         elem = WebDriverWait(driver, TIMEOUT).until(
             EC.presence_of_element_located((By.CSS_SELECTOR,
                                             ".submit"))
@@ -169,8 +167,7 @@ class TestDemo(unittest.TestCase):
 
         golden_img = os.path.join(current_dir, GOLDEN_PATH.format(
             "longest_word", "wonderful"))
-        tmp = os.path.join(current_dir, "test/tmp/{}.png".format(
-            random.getrandbits(32)))
+        tmp = os.path.join(current_dir, f"test/tmp/{random.getrandbits(32)}.png")
         time.sleep(GAP_TO_SCREENSHOT)
         driver.save_screenshot(tmp)
         driver.close()
@@ -197,8 +194,7 @@ class TestDemo(unittest.TestCase):
             elem.text, "The 2 cats went to the park where they  until the night")
         golden_img = os.path.join(current_dir, GOLDEN_PATH.format(
             "sentence_builder", "two_cats"))
-        tmp = os.path.join(current_dir, "test/tmp/{}.png".format(
-            random.getrandbits(32)))
+        tmp = os.path.join(current_dir, f"test/tmp/{random.getrandbits(32)}.png")
         time.sleep(GAP_TO_SCREENSHOT)
         driver.save_screenshot(tmp)
         self.assertIsNone(compare_images(tmp, golden_img, TOLERANCE))

@@ -2,9 +2,7 @@ import gradio as gr
 
 
 def image_mod(image):
-    if image is None:
-        return "images/lion.jpg"
-    return image.rotate(45)
+    return "images/lion.jpg" if image is None else image.rotate(45)
 
 
 iface = gr.Interface(image_mod, 

@@ -121,7 +121,7 @@ class Interface:
             self.interpretation = [interpretation.lower() for _ in self.input_components]
         else:
             raise ValueError("Invalid value for parameter: interpretation")         
-            
+
         self.predict = fn
         self.predict_durations = [[0, 0]] * len(fn)
         self.function_names = [func.__name__ for func in fn]
@@ -164,7 +164,7 @@ class Interface:
         self.simple_server = None
         self.allow_screenshot = allow_screenshot
         self.allow_flagging = os.getenv("GRADIO_FLAGGING") or allow_flagging
-        self.flagging_options = flagging_options 
+        self.flagging_options = flagging_options
         self.flagging_dir = flagging_dir
         self.encrypt = encrypt
         Interface.instances.add(self)
@@ -175,7 +175,9 @@ class Interface:
         self.local_url = None
         self.embedding = embedding
         self.show_tips = show_tips
-        self.requires_permissions = any([component.requires_permissions for component in self.input_components])
+        self.requires_permissions = any(
+            component.requires_permissions for component in self.input_components
+        )
         self.enable_queue = enable_queue
 
         data = {'fn': fn,
@@ -196,7 +198,7 @@ class Interface:
             try:
                 import tensorflow as tf
                 self.session = tf.get_default_graph(), \
-                               tf.keras.backend.get_session()
+                                   tf.keras.backend.get_session()
             except (ImportError, AttributeError):
                 # If they are using TF >= 2.0 or don't have TF,
                 # just ignore this.
@@ -207,8 +209,11 @@ class Interface:
 
         if self.analytics_enabled:
             try:
-                requests.post(analytics_url + 'gradio-initiated-analytics/',
-                              data=data, timeout=3)
+                requests.post(
+                    f'{analytics_url}gradio-initiated-analytics/',
+                    data=data,
+                    timeout=3,
+                )
             except (requests.ConnectionError, requests.exceptions.ReadTimeout):
                 pass  # do not push analytics if no network
 
@@ -219,14 +224,14 @@ class Interface:
         return self.__repr__()
 
     def __repr__(self):
-        repr = "Gradio Interface for: {}".format(", ".join(fn.__name__ for fn in self.predict))
+        repr = f'Gradio Interface for: {", ".join(fn.__name__ for fn in self.predict)}'
         repr += "\n" + "-"*len(repr)
         repr += "\ninputs:"
         for component in self.input_components:
-            repr += "\n|-{}".format(str(component))
+            repr += f"\n|-{str(component)}"
         repr += "\noutputs:"
         for component in self.output_components:
-            repr+= "\n|-{}".format(str(component))
+            repr += f"\n|-{str(component)}"
         return repr
         
     def get_config_file(self):
@@ -262,31 +267,36 @@ class Interface:
                 if not iface["label"]:
                     iface["label"] = param.replace("_", " ")
             for i, iface in enumerate(config["output_components"]):
-                outputs_per_function = int(len(self.output_components) / len(self.predict))
+                outputs_per_function = len(self.output_components) // len(self.predict)
                 function_index = i // outputs_per_function
                 component_index = i - function_index * outputs_per_function
-                ret_name = "Output " + str(component_index + 1) if outputs_per_function > 1 else "Output"
+                ret_name = (
+                    f"Output {str(component_index + 1)}"
+                    if outputs_per_function > 1
+                    else "Output"
+                )
                 if iface["label"] is None:
                     iface["label"] = ret_name
                 if len(self.predict) > 1:
                     iface["label"] = self.function_names[function_index].replace("_", " ") + ": " + iface["label"]
-                    
+
         except ValueError:
             pass
         if self.examples is not None:
             if isinstance(self.examples, str):
                 if not os.path.exists(self.examples):
-                    raise FileNotFoundError("Could not find examples directory: " + self.examples)
+                    raise FileNotFoundError(f"Could not find examples directory: {self.examples}")
                 log_file = os.path.join(self.examples, "log.csv")
-                if not os.path.exists(log_file):
-                    if len(self.input_components) == 1:
-                        examples = [[item] for item in os.listdir(self.examples)]
-                    else:
-                        raise FileNotFoundError("Could not find log file (required for multiple inputs): " + log_file)
-                else:
+                if os.path.exists(log_file):
                     with open(log_file) as logs:
                         examples = list(csv.reader(logs)) 
                         examples = examples[1:] #remove header
+                elif len(self.input_components) == 1:
+                    examples = [[item] for item in os.listdir(self.examples)]
+                else:
+                    raise FileNotFoundError(
+                        f"Could not find log file (required for multiple inputs): {log_file}"
+                    )
                 for i, example in enumerate(examples):
                     for j, (interface, cell) in enumerate(zip(self.input_components + self.output_components, example)):
                         examples[i][j] = interface.restore_flagged(cell)
@@ -317,14 +327,11 @@ class Interface:
 
             if len(self.output_components) == len(self.predict):
                 prediction = [prediction]
-            
+
             durations.append(duration)
             predictions.extend(prediction)
-        
-        if return_duration:
-            return predictions, durations
-        else:
-            return predictions
+
+        return (predictions, durations) if return_duration else predictions
 
     def process(self, raw_input):
         """
@@ -395,14 +402,14 @@ class Interface:
                 elif interp == "shap":
                     try:
                         import shap
-                    except (ImportError, ModuleNotFoundError):
+                    except ImportError:
                         raise ValueError("The package `shap` is required for this interpretation method. Try: `pip install shap`")
                     input_component = self.input_components[i]
                     if not(input_component.interpret_by_tokens):
                         raise ValueError("Input component {} does not support `shap` interpretation".format(input_component))
-                    
+
                     tokens, _, masks = input_component.tokenize(x)
-                    
+
                     def get_masked_prediction(binary_mask):  # construct a masked version of the input
                         masked_xs = input_component.get_masked_inputs(tokens, binary_mask)  
                         preds = []
@@ -414,7 +421,7 @@ class Interface:
                             preds.append(pred)
                         return np.array(preds)
 
-                    num_total_segments = len(tokens) 
+                    num_total_segments = len(tokens)
                     explainer = shap.KernelExplainer(get_masked_prediction, np.zeros((1, num_total_segments)))
                     shap_values = explainer.shap_values(np.ones((1, num_total_segments)), nsamples=int(self.num_shap*num_total_segments), silent=True)
                     scores.append(input_component.get_interpretation_scores(raw_input[i], None, shap_values[0], masks=masks, tokens=tokens))
@@ -447,8 +454,8 @@ class Interface:
             return interpretation, []
 
     def close(self):
-        if self.simple_server and not (self.simple_server.fileno() == -1):  # checks to see if server is running
-            print("Closing Gradio server on port {}...".format(self.server_port))
+        if self.simple_server and self.simple_server.fileno() != -1:  # checks to see if server is running
+            print(f"Closing Gradio server on port {self.server_port}...")
             networking.close_server(self.simple_server)
 
     def run_until_interrupted(self, thread, path_to_local_server):
@@ -464,7 +471,7 @@ class Interface:
 
     def test_launch(self):
         for predict_fn in self.predict:
-            print("Test launch: {}()...".format(predict_fn.__name__), end=' ')
+            print(f"Test launch: {predict_fn.__name__}()...", end=' ')
 
             raw_input = []
             for input_component in self.input_components:
@@ -602,15 +609,20 @@ class Interface:
             analytics_integration = "CometML"
             comet_ml.log_other("Created from", "Gradio")
             if self.share_url is not None:
-                comet_ml.log_text("gradio: " + self.share_url)
-                comet_ml.end()
+                comet_ml.log_text(f"gradio: {self.share_url}")
             else:
-                comet_ml.log_text("gradio: " + self.local_url)
-                comet_ml.end()
+                comet_ml.log_text(f"gradio: {self.local_url}")
+            comet_ml.end()
         if wandb is not None:
             analytics_integration = "WandB"
             if self.share_url is not None:
-                wandb.log({"Gradio panel": wandb.Html('<iframe src="' + self.share_url + '" width="' + str(self.width) + '" height="' + str(self.height) + '" frameBorder="0"></iframe>')})
+                wandb.log(
+                    {
+                        "Gradio panel": wandb.Html(
+                            f'<iframe src="{self.share_url}" width="{str(self.width)}" height="{str(self.height)}" frameBorder="0"></iframe>'
+                        )
+                    }
+                )
             else:
                 print("The WandB integration requires you to `launch(share=True)` first.")
         if mlflow is not None:
@@ -621,16 +633,17 @@ class Interface:
             else:
                 mlflow.log_param("Gradio Interface Local Link",
                                  self.local_url)
-        if self.analytics_enabled:
-            if not analytics_integration:
-                data = {'integration': analytics_integration}
-                try:
-                    requests.post(analytics_url +
-                                  'gradio-integration-analytics/',
-                                  data=data, timeout=3)
-                except (
-                requests.ConnectionError, requests.exceptions.ReadTimeout):
-                    pass  # do not push analytics if no network
+        if self.analytics_enabled and not analytics_integration:
+            data = {'integration': analytics_integration}
+            try:
+                requests.post(
+                    f'{analytics_url}gradio-integration-analytics/',
+                    data=data,
+                    timeout=3,
+                )
+            except (
+            requests.ConnectionError, requests.exceptions.ReadTimeout):
+                pass  # do not push analytics if no network
 
 def show_tip(io):
     if not(io.show_tips) or random.random() < 0.5:  # Only show tip every other use.
@@ -655,11 +668,10 @@ def launch_counter():
         pass
 
 def send_error_analytics(analytics_enabled):
-    data = {'error': 'RuntimeError in launch method'}
     if analytics_enabled:
+        data = {'error': 'RuntimeError in launch method'}
         try:
-            requests.post(analytics_url + 'gradio-error-analytics/',
-                            data=data, timeout=3)
+            requests.post(f'{analytics_url}gradio-error-analytics/', data=data, timeout=3)
         except (requests.ConnectionError, requests.exceptions.ReadTimeout):
             pass  # do not push analytics if no network
 
@@ -674,8 +686,11 @@ def send_launch_analytics(analytics_enabled, inbrowser, is_colab, share, share_u
             'ip_address': ip_address
         }
         try:
-            requests.post(analytics_url + 'gradio-launched-analytics/',
-                            data=data, timeout=3)
+            requests.post(
+                f'{analytics_url}gradio-launched-analytics/',
+                data=data,
+                timeout=3,
+            )
         except (requests.ConnectionError, requests.exceptions.ReadTimeout):
             pass  # do not push analytics if no network
 

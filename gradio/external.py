@@ -6,11 +6,7 @@ from gradio import inputs, outputs
 
 def get_huggingface_interface(model_name, api_key, alias):
     api_url = "https://api-inference.huggingface.co/models/{}".format(model_name)
-    if api_key is not None:
-        headers = {"Authorization": f"Bearer {api_key}"}
-    else:
-        headers = {}
-
+    headers = {"Authorization": f"Bearer {api_key}"} if api_key is not None else {}
     # Checking if model exists, and if so, it gets the pipeline
     response = requests.request("GET", api_url,  headers=headers)
     assert response.status_code == 200, "Invalid model name or src"
@@ -128,14 +124,14 @@ def get_huggingface_interface(model_name, api_key, alias):
         },
     }
 
-    if p is None or not(p in pipelines):
+    if p is None or p not in pipelines:
         print("Warning: no interface information found")
-    
+
     pipeline = pipelines[p]
 
     def query_huggingface_api(*input):
         payload = pipeline['preprocess'](*input)
-        if p == 'automatic-speech-recognition' or p == 'image-classification':
+        if p in ['automatic-speech-recognition', 'image-classification']:
             with open(input[0].name, "rb") as f:
                 data = f.read()
         else:
@@ -143,7 +139,7 @@ def get_huggingface_interface(model_name, api_key, alias):
             data = json.dumps(payload)
         response = requests.request("POST", api_url, headers=headers, data=data)
         if response.status_code == 200:
-            if p == 'text-to-speech' or p == 'text-to-image':
+            if p in ['text-to-speech', 'text-to-image']:
                 output = pipeline['postprocess'](response)
             else:
                 result = response.json()
@@ -151,12 +147,8 @@ def get_huggingface_interface(model_name, api_key, alias):
         else:
             raise ValueError("Could not complete request to HuggingFace API, Error {}".format(response.status_code))
         return output
-    
-    if alias is None:
-        query_huggingface_api.__name__ = model_name
-    else:
-        query_huggingface_api.__name__ = alias
 
+    query_huggingface_api.__name__ = model_name if alias is None else alias
     interface_info = {
         'fn': query_huggingface_api, 
         'inputs': pipeline['inputs'],
@@ -195,11 +187,7 @@ def get_gradio_interface(model_name, api_key, alias):
         output = pipeline['postprocess'](result)
         return output
 
-    if alias is None:
-        query_gradio_api.__name__ = model_name
-    else:
-        query_gradio_api.__name__ = alias
-
+    query_gradio_api.__name__ = model_name if alias is None else alias
     pipeline = {
         'inputs': [inp[0] for inp in config_info["input_components"]],
         'outputs': [out[0] for out in config_info["output_components"]],
@@ -222,9 +210,8 @@ def load_interface(name, src=None, api_key=None, alias=None):
         assert len(tokens) > 1, "Either `src` parameter must be provided, or `name` must be formatted as \{src\}/\{repo name\}"
         src = tokens[0]
         name = "/".join(tokens[1:])
-    assert src.lower() in repos, "parameter: src must be one of {}".format(repos.keys())
-    interface_info = repos[src](name, api_key, alias)
-    return interface_info
+    assert src.lower() in repos, f"parameter: src must be one of {repos.keys()}"
+    return repos[src](name, api_key, alias)
 
 repos = {
     # for each repo, we have a method that returns the Interface given the model name & optionally an api_key

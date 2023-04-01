@@ -24,7 +24,7 @@ def encode_file_to_base64(f, type="image", ext=None, header=True):
             return base64_str
         if ext is None:
             ext = f.split(".")[-1]
-        return "data:" + type + "/" + ext + ";base64," + base64_str
+        return f"data:{type}/{ext};base64,{base64_str}"
 
 
 def encode_plot_to_base64(plt):
@@ -32,7 +32,7 @@ def encode_plot_to_base64(plt):
         plt.savefig(output_bytes, format="png")
         bytes_data = output_bytes.getvalue()
     base64_str = str(base64.b64encode(bytes_data), 'utf-8')
-    return "data:image/png;base64," + base64_str
+    return f"data:image/png;base64,{base64_str}"
 
 def encode_array_to_base64(image_array):
     with BytesIO() as output_bytes:
@@ -40,7 +40,7 @@ def encode_array_to_base64(image_array):
         PIL_image.save(output_bytes, 'PNG')
         bytes_data = output_bytes.getvalue()
     base64_str = str(base64.b64encode(bytes_data), 'utf-8')
-    return "data:image/png;base64," + base64_str
+    return f"data:image/png;base64,{base64_str}"
 
 
 def resize_and_crop(img, size, crop_type='center'):
@@ -72,7 +72,7 @@ def decode_base64_to_binary(encoding):
         header, data = encoding.split(",")
         header = header[5:]
         if ";base64" in header:
-            header = header[0:header.index(";base64")]
+            header = header[:header.index(";base64")]
         if "/" in header:
             extension = header[header.index("/") + 1:]
     else:
@@ -86,14 +86,16 @@ def decode_base64_to_file(encoding, encryption_key=None, file_path=None):
         filename = os.path.basename(file_path)
         prefix = filename
         if "." in filename:
-            prefix = filename[0: filename.index(".")]
+            prefix = filename[:filename.index(".")]
             extension = filename[filename.index(".") + 1:]
     if extension is None:
         extension = mime_extension
     if extension is None:
         file_obj = tempfile.NamedTemporaryFile(delete=False, prefix=prefix)
     else:
-        file_obj = tempfile.NamedTemporaryFile(delete=False, prefix=prefix, suffix="."+extension)
+        file_obj = tempfile.NamedTemporaryFile(
+            delete=False, prefix=prefix, suffix=f".{extension}"
+        )
     if encryption_key is not None:
         data = encryptor.encrypt(encryption_key, data)
     file_obj.write(data)
@@ -104,12 +106,14 @@ def create_tmp_copy_of_file(file_path):
     file_name = os.path.basename(file_path)
     prefix, extension = file_name, None
     if "." in file_name:
-        prefix = file_name[0: file_name.index(".")]
+        prefix = file_name[:file_name.index(".")]
         extension = file_name[file_name.index(".") + 1:]
     if extension is None:
         file_obj = tempfile.NamedTemporaryFile(delete=False, prefix=prefix)
     else:
-        file_obj = tempfile.NamedTemporaryFile(delete=False, prefix=prefix, suffix="."+extension)
+        file_obj = tempfile.NamedTemporaryFile(
+            delete=False, prefix=prefix, suffix=f".{extension}"
+        )
     shutil.copy2(file_path, file_obj.name)
     return file_obj
 
@@ -226,10 +230,7 @@ def _convert(image, dtype, force_copy=False, uniform=False):
         kind = a.dtype.kind
         if n > m and a.max() < 2 ** m:
             mnew = int(np.ceil(m / 2) * 2)
-            if mnew > m:
-                dtype = "int{}".format(mnew)
-            else:
-                dtype = "uint{}".format(mnew)
+            dtype = "int{}".format(mnew) if mnew > m else "uint{}".format(mnew)
             n = int(np.ceil(n / 2) * 2)
             return a.astype(_dtype_bits(kind, m))
         elif n == m:
@@ -271,10 +272,7 @@ def _convert(image, dtype, force_copy=False, uniform=False):
 
     image = np.asarray(image)
     dtypeobj_in = image.dtype
-    if dtype is np.floating:
-        dtypeobj_out = np.dtype('float64')
-    else:
-        dtypeobj_out = np.dtype(dtype)
+    dtypeobj_out = np.dtype('float64') if dtype is np.floating else np.dtype(dtype)
     dtype_in = dtypeobj_in.type
     dtype_out = dtypeobj_out.type
     kind_in = dtypeobj_in.kind

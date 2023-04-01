@@ -15,10 +15,9 @@ def version_check():
         current_pkg_version = pkg_resources.require("gradio")[0].version
         latest_pkg_version = requests.get(url=PKG_VERSION_URL).json()["version"]
         if StrictVersion(latest_pkg_version) > StrictVersion(current_pkg_version):
-            print("IMPORTANT: You are using gradio version {}, "
-                    "however version {} "
-                    "is available, please upgrade.".format(
-                current_pkg_version, latest_pkg_version))
+            print(
+                f"IMPORTANT: You are using gradio version {current_pkg_version}, however version {latest_pkg_version} is available, please upgrade."
+            )
             print('--------')
     except pkg_resources.DistributionNotFound:
         warnings.warn("gradio is not setup or installed properly. Unable to get version info.")
@@ -36,10 +35,9 @@ def error_analytics(type):
     Send error analytics if there is network
     :param type: RuntimeError or NameError
     """
-    data = {'error': '{} in launch method'.format(type)}
+    data = {'error': f'{type} in launch method'}
     try:
-        requests.post(analytics_url + 'gradio-error-analytics/',
-                      data=data, timeout=3)
+        requests.post(f'{analytics_url}gradio-error-analytics/', data=data, timeout=3)
     except (requests.ConnectionError, requests.exceptions.ReadTimeout):
         pass  # do not push analytics if no network
 
